@@ -7,6 +7,7 @@ using Proyecto_Token.Models.Custom;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 
 namespace Proyecto_Token.Services
 {
@@ -129,5 +130,31 @@ namespace Proyecto_Token.Services
 
 
         }
+
+        public async Task<Usuario> RegistrarUsuarioAsync(RegistroUsuarios registroUsuario)
+        {
+            // Verificar si el correo ya está registrado
+            if (await _context.Usuarios.AnyAsync(u => u.Correo == registroUsuario.Correo))
+            {
+                throw new Exception("Este correo ya está registrado.");
+            }
+
+            // Crear el nuevo usuario
+            var usuario = new Usuario
+            {
+                Nombre = registroUsuario.Nombre,
+                Correo = registroUsuario.Correo,
+                Contraseña = registroUsuario.Contraseña,
+                IdRol = registroUsuario.IdRol // Asignar rol de usuario normal
+            };
+
+           
+
+            _context.Usuarios.Add(usuario);
+            await _context.SaveChangesAsync();
+
+            return usuario;
+        }
     }
-}
+ }
+

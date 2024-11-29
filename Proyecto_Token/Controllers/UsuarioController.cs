@@ -49,5 +49,19 @@ namespace Proyecto_Token.Controllers
             else
                 return BadRequest(autorizacionResponse);
         }
+
+        [HttpPost("Registro")]
+        public async Task<IActionResult> Registrar([FromBody] RegistroUsuarios registroUsuario)
+        {
+            try
+            {
+                var usuario = await _autorizacionService.RegistrarUsuarioAsync(registroUsuario);
+                return Ok(usuario);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
