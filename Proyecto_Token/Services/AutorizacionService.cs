@@ -6,6 +6,7 @@ using Proyecto_Token.Models;
 using Proyecto_Token.Models.Custom;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 
 namespace Proyecto_Token.Services
 {
@@ -54,6 +55,37 @@ namespace Proyecto_Token.Services
             return tokenCreado;
         }
 
+        private string GenerarRefreshToken() {
+            var byteArray = new byte[64];
+            var refreshToken = "";
+
+            using (var mg = RandomNumberGenerator.Create()) { 
+                mg.GetBytes(byteArray);
+                refreshToken = Convert.ToBase64String(byteArray);
+            }
+            return refreshToken;
+        }
+
+        private async Task<AutorizacionResponse> GuardarHistorialRefreshToken(
+            int idUsuario,
+            string token,
+            string refreshToken
+            ) {
+            var historialRefreshToken = new HistorialRefreshToken
+            {
+                IdUsuario = idUsuario,
+                Token = token,
+                RefreshToken = refreshToken,
+                FechaCreacion = DateTime.UtcNow,
+                FechaExpiracion = DateTime.UtcNow.AddMinutes(2)
+            };
+
+            await _context.HistorialRefreshTokens.AddAsync(historialRefreshToken);
+            await _context.SaveChangesAsync();
+
+            return new AutorizacionResponse { Token=token,RefreshToken=refreshToken, Resultado=true,Msg="Ok"};
+        }
+
         public async Task<AutorizacionResponse> DevolverToken(AutorizacionRequest autorizacion)
         {
             var usuario_encotrado = _context.Usuarios.FirstOrDefault(x =>
@@ -70,7 +102,30 @@ namespace Proyecto_Token.Services
             //Si existe genera token y devuelve el token por el mismo medio
             string tokenCreado = GenerarToken(usuario_encotrado.IdUsuario.ToString());
 
-            return new AutorizacionResponse() { Token = tokenCreado, Resultado = true,Msg = "Okey" };
+            string refreshTokenCreado = GenerarRefreshToken();
+
+            //return new AutorizacionResponse() { Token = tokenCreado, Resultado = true,Msg = "Okey" };
+
+            return await GuardarHistorialRefreshToken(usuario_encotrado.IdUsuario,tokenCreado,refreshTokenCreado);
+
+
+        }
+
+        public async Task<AutorizacionResponse> DevolverRefreshToken(RefreshTokenRequest refreshTokenRequest, int idUsuario)
+        {
+            var refreshTokenEncontrado = _context.HistorialRefreshTokens.FirstOrDefault(x =>
+            x.Token == refreshTokenRequest.TokenExpirado &&
+            x.RefreshToken == refreshTokenRequest.RefreshToken &&
+            x.IdUsuario == idUsuario);
+
+            if (refreshTokenEncontrado == null)
+                return new AutorizacionResponse { Resultado = false, Msg = "No existe refresh Token" };
+
+            var refreshTokenCreado = GenerarRefreshToken();
+            var tokenCreado = GenerarToken(idUsuario.ToString());
+
+            return await GuardarHistorialRefreshToken(idUsuario, tokenCreado, refreshTokenCreado);
+
 
 
         }

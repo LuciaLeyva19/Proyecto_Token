@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Proyecto_Token.Models.Custom;
 using Proyecto_Token.Services;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text.RegularExpressions;
 
 namespace Proyecto_Token.Controllers
 {
@@ -24,6 +26,28 @@ namespace Proyecto_Token.Controllers
                 return Unauthorized();
 
             return Ok(resultado_autorizacion);  
+        }
+
+
+        [HttpPost]
+        [Route("ObtenerRefreshToken")]
+        public async Task<IActionResult> ObtenerRefreshToken([FromBody] RefreshTokenRequest request) { 
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenExpiradoSupuestamente = tokenHandler.ReadJwtToken(request.TokenExpirado);
+
+            if (tokenExpiradoSupuestamente.ValidTo > DateTime.UtcNow)
+                return BadRequest(new AutorizacionResponse { Resultado = false, Msg = "Token no ha expirado" });
+
+            string idUsuario = tokenExpiradoSupuestamente.Claims.First(x =>
+            x.Type==JwtRegisteredClaimNames.NameId).Value.ToString();
+
+            var autorizacionResponse = await _autorizacionService.DevolverRefreshToken(request, int.Parse(idUsuario));
+
+            if (autorizacionResponse.Resultado)
+                return Ok(autorizacionResponse);
+            else
+                return BadRequest(autorizacionResponse);
         }
     }
 }
