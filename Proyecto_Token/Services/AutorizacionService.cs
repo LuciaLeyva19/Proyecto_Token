@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Proyecto_Token.Services
 {
     public class AutorizacionService : IAutorizacionService
@@ -26,11 +27,19 @@ namespace Proyecto_Token.Services
 
         private string GenerarToken(string IdUsuario) {
 
+            var usuario = _context.Usuarios
+                .Include(u => u.IdRolNavigation)
+                .FirstOrDefault(u=>u.IdUsuario.ToString() == IdUsuario);
+
+            if (usuario == null)
+                throw new Exception("Usuario no encontrado");
+
             var key = _configuration.GetValue<string>("JwtSettings:key");
             var keyBytes = Encoding.ASCII.GetBytes(key);
 
             var claims = new ClaimsIdentity();
             claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, IdUsuario));
+            claims.AddClaim(new Claim(ClaimTypes.Role, usuario.IdRolNavigation.NombreRol));
 
             //credencial para el token
 
@@ -133,27 +142,37 @@ namespace Proyecto_Token.Services
 
         public async Task<Usuario> RegistrarUsuarioAsync(RegistroUsuarios registroUsuario)
         {
-            // Verificar si el correo ya está registrado
-            if (await _context.Usuarios.AnyAsync(u => u.Correo == registroUsuario.Correo))
+            // Verificar si el correo ya existe
+            if (_context.Usuarios.Any(u => u.Correo == registroUsuario.Correo))
             {
-                throw new Exception("Este correo ya está registrado.");
+                throw new Exception("El correo ya está registrado.");
             }
 
             // Crear el nuevo usuario
-            var usuario = new Usuario
+            var nuevoUsuario = new Usuario
             {
                 Nombre = registroUsuario.Nombre,
                 Correo = registroUsuario.Correo,
-                Contraseña = registroUsuario.Contraseña,
-                IdRol = registroUsuario.IdRol // Asignar rol de usuario normal
+                Contraseña= registroUsuario.Contraseña,
+                IdRol = registroUsuario.IdRol
             };
 
-           
-
-            _context.Usuarios.Add(usuario);
+            // Guardar en la base de datos
+            _context.Usuarios.Add(nuevoUsuario);
             await _context.SaveChangesAsync();
 
-            return usuario;
+            return nuevoUsuario;
+        }
+        public async Task<Usuario> ObtenerUsuarioPorNombreAsync(string nombreUsuario)
+        {
+            return await _context.Usuarios.FirstOrDefaultAsync(u => u.Nombre == nombreUsuario);
+        }
+
+        public bool ValidarContraseña(Usuario usuario, string contraseña)
+        {
+            // Para este ejemplo, se usa una comparación simple de texto plano.
+            // En un entorno real, utiliza un hash seguro para la contraseña.
+            return usuario.Contraseña == contraseña;
         }
     }
  }

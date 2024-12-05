@@ -9,5 +9,8 @@ namespace Proyecto_Token.Services
 
         Task<Usuario> RegistrarUsuarioAsync(RegistroUsuarios registroUsuario);
 
+        Task<Usuario> ObtenerUsuarioPorNombreAsync(string nombreUsuario);
+        bool ValidarContraseña(Usuario usuario, string contraseña);
+
     }
 }

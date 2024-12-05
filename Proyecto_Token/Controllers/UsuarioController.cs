@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Proyecto_Token.Models.Custom;
 using Proyecto_Token.Services;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 namespace Proyecto_Token.Controllers
@@ -20,12 +22,30 @@ namespace Proyecto_Token.Controllers
 
         [HttpPost]
         [Route("Autenticar")]
-        public async Task <IActionResult>Autenticar([FromBody] AutorizacionRequest autorizacion) { 
+        public async Task <IActionResult>Autenticar([FromBody] AutorizacionRequest autorizacion) 
+        {
+            // Validar si el usuario existe en la base de datos
+            var usuario = await _autorizacionService.ObtenerUsuarioPorNombreAsync(autorizacion.NombreUsuario);
+            if (usuario == null)
+            {
+                return Unauthorized(new { Mensaje = "El nombre de usuario no existe." });
+            }
+
+            // Validar si la contraseña es correcta
+            var contraseñaValida = _autorizacionService.ValidarContraseña(usuario, autorizacion.Clave);
+            if (!contraseñaValida)
+            {
+                return Unauthorized(new { Mensaje = "La contraseña es incorrecta." });
+            }
+
+            // Generar el token si las credenciales son correctas
             var resultado_autorizacion = await _autorizacionService.DevolverToken(autorizacion);
             if (resultado_autorizacion == null)
-                return Unauthorized();
+            {
+                return Unauthorized(new { Mensaje = "Error al generar el token." });
+            }
 
-            return Ok(resultado_autorizacion);  
+            return Ok(resultado_autorizacion);
         }
 
 
@@ -51,10 +71,22 @@ namespace Proyecto_Token.Controllers
         }
 
         [HttpPost("Registro")]
+        [Authorize]
         public async Task<IActionResult> Registrar([FromBody] RegistroUsuarios registroUsuario)
         {
             try
             {
+                // Obtener los claims del usuario autenticado
+                var usuarioActualClaims = HttpContext.User.Claims;
+                var rolUsuarioActual = usuarioActualClaims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+                // Verificar si el usuario es administrador
+                if (rolUsuarioActual != "Administrador")
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new { message = "Solo los administradores pueden registrar nuevos usuarios" });
+                }
+
+                // Llamar al servicio para registrar al usuario
                 var usuario = await _autorizacionService.RegistrarUsuarioAsync(registroUsuario);
                 return Ok(usuario);
             }
