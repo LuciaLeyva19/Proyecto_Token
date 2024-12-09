@@ -157,7 +157,6 @@ namespace Proyecto_Token.Services
                 IdRol = registroUsuario.IdRol
             };
 
-            // Guardar en la base de datos
             _context.Usuarios.Add(nuevoUsuario);
             await _context.SaveChangesAsync();
 
@@ -170,8 +169,6 @@ namespace Proyecto_Token.Services
 
         public bool ValidarContraseña(Usuario usuario, string contraseña)
         {
-            // Para este ejemplo, se usa una comparación simple de texto plano.
-            // En un entorno real, utiliza un hash seguro para la contraseña.
             return usuario.Contraseña == contraseña;
         }
     }

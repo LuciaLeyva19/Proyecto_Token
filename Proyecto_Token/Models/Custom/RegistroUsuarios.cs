@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc; // Para ControllerBase y IActionResult
-using Microsoft.EntityFrameworkCore; // Para acceder a DbContext y LINQ
-using System.Linq; // Para usar métodos LINQ como .Any() o .ToList()
-using System.Threading.Tasks; // Para async/await
-using Proyecto_Token.Models.Custom; // Para el modelo RegistroUsuarios
+﻿using Microsoft.AspNetCore.Mvc; 
+using Microsoft.EntityFrameworkCore; 
+using System.Linq; 
+using System.Threading.Tasks; 
+using Proyecto_Token.Models.Custom; 
 namespace Proyecto_Token.Models.Custom;
 
 public class RegistroUsuarios

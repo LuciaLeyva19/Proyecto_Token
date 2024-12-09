@@ -31,7 +31,7 @@ namespace Proyecto_Token.Controllers
                 return Unauthorized(new { Mensaje = "El nombre de usuario no existe." });
             }
 
-            // Validar si la contraseña es correcta
+            // Valida si la contraseña es correcta
             var contraseñaValida = _autorizacionService.ValidarContraseña(usuario, autorizacion.Clave);
             if (!contraseñaValida)
             {
